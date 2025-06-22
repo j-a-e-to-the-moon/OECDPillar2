@@ -45,11 +45,29 @@ class EntityRequest(BaseModel):
     direct_controller_name: Optional[str] = Field(default="etc", description="the direct controller name, default value is 'etc'")
     precedence_order_in_org_chart: Optional[int] = Field(None, description="the precedence order in the org chart, default value is None, when duplicate, the order is granted automatically by the system among the same level")
 
+class EntitiesRequest(BaseModel):
+    """Multiple Entities Information Request"""
+    entities: List[EntityRequest] = Field(..., description="the list of entities")
+
 class OwnershipRequest(BaseModel):
     """Ownership Information Request"""
     owner_entity_name: str = Field(..., description="the name of the owner entity")
     owned_entity_name: str = Field(..., description="the name of the owned entity")
     ownership_percentage: float = Field(..., ge=0, le=1, description="the ownership percentage")
+
+class OwnershipsRequest(BaseModel):
+    """Ownerships Information Request"""
+    ownerships: List[OwnershipRequest] = Field(..., description="the list of ownerships")
+
+class OwnershipRequestItem(BaseModel):
+    """Ownership Information Request Item"""
+    owner_entity_index: int = Field(..., description="the index of the owner entity")
+    owned_entity_index: int = Field(..., description="the index of the owned entity")
+    ownership_percentage: float = Field(..., ge=0, le=1, description="the ownership percentage")
+
+class OwnershipsRequestDTO(BaseModel):
+    """Ownerships Information Request DTO"""
+    ownerships: List[OwnershipRequestItem] = Field(..., description="the list of ownerships")
 
 class CompanyResponse(BaseModel):
     """Pillar2 Calculation Structure Response for Company"""
@@ -59,6 +77,10 @@ class CompanyResponse(BaseModel):
     effective_tax_rate_calculation_group: Optional[str] = Field(None, description="the name of the effective tax rate calculation group, when it is excluded entity in calculating effective tax rate, it is None")
     income_inclusion_rule_taxed_ratio: float = Field(default=0, ge=0, le=1, description="the taxed ratio of the income inclusion rule, when it is not taxed by IIR, it is 0")
     utpr_taxed_ratio: float = Field(default=0, ge=0, le=1, description="the taxed ratio of the undertaxed payments rule, when it is not taxed by UTPR, it is 0")
+
+class CompaniesResponse(BaseModel):
+    """Multiple Companies Information Response"""
+    companies: List[CompanyResponse] = Field(..., description="the list of companies")
 
 class IncomeInclusionRuleResponse(BaseModel):
     """Income Inclusion Rule Response"""
@@ -70,11 +92,19 @@ class IncomeInclusionRuleResponse(BaseModel):
     @property
     def offset_ratio(self) -> float:
         return self.direct_indirect_ownership_ratio - self.income_inclusion_ratio
+    
+class IncomeInclusionRulesResponse(BaseModel):
+    """Multiple Income Inclusion Rules Information Response"""
+    income_inclusion_rules: List[IncomeInclusionRuleResponse] = Field(..., description="the list of income inclusion rules")
 
 class UnderTaxedPaymentsRuleResponse(BaseModel):
     """Under Taxed Payments Rule Response"""
     entity_name: str = Field(..., description="the name of the entity, primary key")
     utpr_taxed_ratio: float = Field(default=0, ge=0, le=1, description="the ratio of the undertaxed payments rule, when it is not taxed by UTPR, it is 0")
+
+class UnderTaxedPaymentsRulesResponse(BaseModel):
+    """Multiple Under Taxed Payments Rules Information Response"""
+    under_taxed_payments_rules: List[UnderTaxedPaymentsRuleResponse] = Field(..., description="the list of under taxed payments rules")
 
 class OrgChartResponse(BaseModel):
     """Org Chart Response"""
@@ -85,11 +115,22 @@ class OrgChartResponse(BaseModel):
     owner_names: Optional[List[str]] = Field(default=None, description="the names of the owners, when it doesn't have its owner, it is None")
     owned_names: Optional[List[str]] = Field(default=None, description="the names of the owned entities, when it doesn't have its owned entity, it is None")
 
+class OrgChartsResponse(BaseModel):
+    """Multiple Org Charts Information Response"""
+    org_charts: List[OrgChartResponse] = Field(..., description="the list of org charts")
+
+class StructuresResponse(BaseModel):
+    """Structure of Pillar 2 Calculation"""
+    companies: CompaniesResponse = Field(..., description="the companies")
+    income_inclusion_rules: IncomeInclusionRulesResponse = Field(..., description="the income inclusion rules")
+    under_taxed_payments_rules: UnderTaxedPaymentsRulesResponse = Field(..., description="the under taxed payments rules")
+    org_charts: OrgChartsResponse = Field(..., description="the org charts")
+
 class ApiResponse(BaseModel):
     """API 응답 기본 모델"""
     success: bool = Field(default=True, description="성공 여부")
     message: str = Field(default="계산이 성공적으로 완료되었습니다", description="응답 메시지")
-    data: Optional[dict] = Field(None, description="응답 데이터")
+    data: object = Field(None, description="응답 데이터")
 
 class EntitiesIndexMappingItem(BaseModel):
     """Entities DTO"""
@@ -100,17 +141,21 @@ class EntitiesIndexMappingDTO(BaseModel):
     """Entities Index Mapping DTO"""
     entities_index_mapping_items: List[EntitiesIndexMappingItem] = Field(..., description="the list of the entities index mapping items")
 
-class DirectIndirectOwnershipRatioItem(BaseModel):
+class EntitySimpleRequest(BaseModel):
+    """Entity Simple Request"""
+    name: str = Field(..., description="the name of the entity, primary key")
+
+class EntitiesSimpleRequest(BaseModel):
+    """Entities Simple Request"""
+    entities: List[EntitySimpleRequest] = Field(..., description="the list of the entities")
+
+class DirectIndirectOwnershipRatioResponseItem(BaseModel):
     """Direct and Indirect Ownership Ratio Item"""
     owner_entity_name: str = Field(..., description="the name of the owner entity")
     owned_entity_name: str = Field(..., description="the name of the owned entity")
-    direct_ownership_ratio: Optional[float] = Field(default=None, description="the direct ownership ratio, when it is not owned by the owner entity, it is None") # 직간접 지분이 있는 상태에서 직접지분은 존재하지 않을 수 있음
     direct_indirect_ownership_ratio: float = Field(..., description="the direct and indirect ownership ratio, when it is not owned by the owner entity, it is 0") # 직간접 지분이 존재하는 관계만 반환
 
-    @property
-    def indirect_ownership_ratio(self) -> float:
-        return self.direct_indirect_ownership_ratio - (self.direct_ownership_ratio or 0)
-
-class DirectIndirectOwnershipRatioDTO(BaseModel):
+class DirectIndirectOwnershipRatioResponse(BaseModel):
     """Direct and Indirect Ownership Ratio DTO, the list of the direct and indirect ownership ratio items"""
-    direct_indirect_ownership_ratio_items: List[DirectIndirectOwnershipRatioItem] = Field(..., description="the list of the direct and indirect ownership ratio items")
+    direct_indirect_ownership_ratio_items: List[DirectIndirectOwnershipRatioResponseItem] = Field(..., description="the list of the direct and indirect ownership ratio items")
+    iterations: int = Field(..., description="the number of iterations")
