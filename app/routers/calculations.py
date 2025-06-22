@@ -122,8 +122,8 @@ def calculate_direct_indirect_ownership_ratio_core(entities_index_mapping_dto: E
     """Calculate the direct and indirect ownership ratio"""
 
     epsilon_for_calculation = 1e-7  # float 정밀도를 고려한 안전한 임계값
-    epsilon_for_filtering = 1e-6  # 결과 필터링을 위한 임계값
-    decimal_places = 6  # 소수점 자릿수
+    epsilon_for_filtering = 1e-4  # 결과 필터링을 위한 임계값
+    decimal_places = 4  # 소수점 자릿수
     
     # 엔티티 인덱스를 이름으로 매핑하는 딕셔너리 생성 (결과에서 이름 표시를 위해)
     entity_index_to_name = {entity.entity_number: entity.entity_name for entity in entities_index_mapping_dto.entities_index_mapping_items}
