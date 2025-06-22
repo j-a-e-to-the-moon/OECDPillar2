@@ -7,12 +7,13 @@ from app.basic_structure_model import (ApiResponse,
     OrgChartResponse,
     SafeharboursGroup, EffectiveTaxRateCalculationGroup,
     EntitiesIndexMappingDTO,
-    DirectIndirectOwnershipRatioDTO
+    DirectIndirectOwnershipRatioDTO,
+    DirectIndirectOwnershipRatioItem
 )
 
 router = APIRouter()
 
-def calculate_direct_indirect_ownership_ratio(entity_request: EntitiesIndexMappingDTO, ownership_request: OwnershipRequest) -> DirectIndirectOwnershipRatioDTO:
+def calculate_direct_indirect_ownership_ratio(entity_request: List[EntitiesIndexMappingDTO], ownership_request: OwnershipRequest) -> List[DirectIndirectOwnershipRatioItem]:
     """Calculate the direct and indirect ownership ratio"""
     
     # 엔티티 이름을 번호로 매핑하는 딕셔너리 생성
@@ -23,15 +24,15 @@ def calculate_direct_indirect_ownership_ratio(entity_request: EntitiesIndexMappi
     matrix_size = max_entity_number + 1
     
     # direct_ownership_matrix 초기화 (0으로 채워진 정사각 행렬)
-    direct_ownership_matrix = np.zeros((matrix_size, matrix_size), dtype=np.float128)
+    direct_ownership_matrix = np.zeros((matrix_size, matrix_size), dtype=float)
     
-    # OwnershipRequest 안의 모든 소유권 관계에 대해 반복해야 함
-    for ownership_relation in ownership_request.ownership_relations:  # 예시
-        owner_number = entity_name_to_number[ownership_relation.owner_entity_name]
-        owned_number = entity_name_to_number[ownership_relation.owned_entity_name]
-        percentage = ownership_relation.ownership_percentage
-        
-        direct_ownership_matrix[owner_number][owned_number] = percentage
+    # ownership_request의 정보를 행렬에 채우기
+    owner_number = entity_name_to_number[ownership_request.owner_entity_name]
+    owned_number = entity_name_to_number[ownership_request.owned_entity_name]
+    percentage = ownership_request.ownership_percentage
+    
+    # owner는 행 인덱스, owned는 열 인덱스, percentage는 행렬 성분값
+    direct_ownership_matrix[owner_number][owned_number] = percentage
     
     result_matrix = direct_ownership_matrix.copy()
     while(not np.equal(direct_ownership_matrix, result_matrix).all()):
@@ -43,10 +44,10 @@ def calculate_direct_indirect_ownership_ratio(entity_request: EntitiesIndexMappi
     for owner_name, owner_number in entity_name_to_number.items():
         for owned_name, owned_number in entity_name_to_number.items():
             if result_matrix[owner_number][owned_number] > 0:
-                result.append(DirectIndirectOwnershipRatioDTO(
+                result.append(DirectIndirectOwnershipRatioItem(
                     owner_entity_name=owner_name,
                     owned_entity_name=owned_name,
-                    direct_ownership_ratio=direct_ownership_matrix[owner_number][owned_number],
+                    direct_ownership_ratio=direct_ownership_matrix[owner_number][owned_number] if direct_ownership_matrix[owner_number][owned_number] > 0 else None,
                     direct_indirect_ownership_ratio=result_matrix[owner_number][owned_number]
                 ))
 
